@@ -14,14 +14,16 @@ struct LocationsView: View {
     
     var body: some View {
         ZStack{
-            Map(coordinateRegion: $vm.mapRegion)
+            mapLayer
                 .ignoresSafeArea()
             
             VStack(spacing: 0){
+                //top
                 header
                     .padding()
-                
                 Spacer()
+                //bottom
+                locationsPreviewStack
             }
         }
     }
@@ -42,15 +44,18 @@ extension LocationsView {
                     .foregroundColor(.primary)
                     .frame(height: 55)
                     .frame(maxWidth: .infinity)
+                    .animation(.none, value: vm.mapLocation)
                     .overlay(alignment: .leading) {
                         Image(systemName: "arrow.down")
                             .font(.headline)
                             .foregroundColor(.primary)
                             .padding()
+                            //상태에 따른 화살표 변경
+                            .rotationEffect(Angle(degrees: vm.showLocationsList ? 180 : 0))
                     }
             }
             
-            if vm.showLoactionsList {
+            if vm.showLocationsList {
                 LocationsListView()
             }
         }
@@ -59,4 +64,37 @@ extension LocationsView {
         .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 15)
     }
     
+    private var mapLayer : some View {
+        Map(coordinateRegion: $vm.mapRegion,
+            annotationItems: vm.locations,
+            annotationContent: { location in
+            MapAnnotation(coordinate: location.coordinates){
+                LocationMapAnnotationView()
+                    //크기에 따른 삼항연산자
+                    .scaleEffect(vm.mapLocation == location ? 1 :0.7)
+                    .shadow(radius: 10)
+                    //onTapGesture로 화살표 클릭시 원하는 뷰로 이동
+                    .onTapGesture {
+                        vm.showNextLocation(location: location)
+                    }
+            }
+        })
+    }
+    
+    private var locationsPreviewStack: some View {
+        ZStack{
+            ForEach(vm.locations) { location in
+                //이미지에 맞게 location변경
+                if vm.mapLocation == location {
+                    LocationPreviewView(location: location)
+                        .shadow(color: Color.black.opacity(0.3), radius: 20)
+                        .padding()
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing),
+                            removal: .move(edge: .leading)))
+                }
+                
+            }
+        }
+    }
 }
